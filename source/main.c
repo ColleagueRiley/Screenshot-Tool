@@ -31,6 +31,10 @@ version control using rlgl to support older opengl versions
 
 save last use options
 color options
+
+- arg for light/dark mode
+- arg for default options
+- dark for highlight color
 */
 
 bool rectCollidePoint(rect r, point p) {
@@ -87,8 +91,8 @@ int main(int argc, char** argv) {
         {"Active window", 40, 50, 20, 20},
         {"Select a region", 40, 80, 20, 20},
         /* option buttons */
-        {"Capture cursor", 40, 140, 20, 20},
-        {"Capture window border", 40, 170, 20, 20},
+        {"Capture cursor", 40, 140, 20, 20, 0, true},
+        {"Capture window border", 40, 170, 20, 20, 0, true},
         /* delay buttons */
         {"0", 180, 20, 20, 20},
         {"_", 200, 20, 20, 20}, /* _ looks better than - */
@@ -113,7 +117,19 @@ int main(int argc, char** argv) {
     rlLoadExtensions((void*)RGFW_getProcAddress);
     rlglInit(win->w, win->h);
 
-    color bg = {70, 70, 70, 255}; /* the window's background color */   
+    color bg, alt, textColor;
+    bool lightMode = false;
+
+    if (lightMode) {
+        bg = (color){227, 227, 227, 255};
+        alt = (color){252, 252, 252, 255};
+        textColor = (color){0, 0, 0, 255};
+    } else {
+        bg = (color){34, 34, 34, 255};
+        alt = (color){40, 40, 40, 255};
+        textColor = (color){200, 200, 200, 255};
+    }
+
     rlClearColor(bg.r, bg.g, bg.b, bg.a);
 
     /* center window */
@@ -132,7 +148,7 @@ int main(int argc, char** argv) {
     
     XGetWindowAttributes(win->display, win->window, &attrs);
 
-    unsigned int boarder_height = attrs.y;
+    unsigned int border_height = attrs.y;
 
     rect screenshot = {0, 0, attrs.width, attrs.height};
 
@@ -182,23 +198,32 @@ int main(int argc, char** argv) {
         }
 
         /* draw headers */
-        drawText("Region", (circle){30, 0, 20}, (color){200, 200, 200, 255}, win, ctx, font);
-        drawText("Options", (circle){30, 110, 20}, (color){200, 200, 200, 255}, win, ctx, font);
-        drawText("Delay", (circle){180, 0, 20}, (color){200, 200, 200, 255}, win, ctx, font);
+        drawText("Region", (circle){30, 0, 20}, textColor, win, ctx, font);
+        drawText("Options", (circle){30, 110, 20}, textColor, win, ctx, font);
+        drawText("Delay", (circle){180, 0, 20}, textColor, win, ctx, font);
 
         buttons[5].text = si_u64_to_cstr(delay);
 
         /* draw buttons */
         for (i = 0; i < buttonCount; i++) {
-            color col = (color){0, 0, 0, 255};
+            color col = alt;
 
-            if (buttons[i].s == hovered && !buttons[i].toggle && i > 5) 
+            if (buttons[i].s == hovered && !buttons[i].toggle)
                 col = (color){50, 50, 50, 255};
             else if (buttons[i].s == pressed || (buttons[i].toggle && i < 5))
                 col = (color){185, 42, 162, 255};
 
-            if (i < 5)
-                drawPolygon(buttons[i].r, 360, col, win);
+            if (i < 5) {
+                drawPolygon(buttons[i].r, 360, 
+                            (i >= 3) ? col : alt,
+                            win
+                );
+
+                if (i < 3) {
+                    rect r = buttons[i].r;
+                    drawPolygon((rect){r.x + (r.w/4), r.y + (r.h/4), r.w / 2, r.h / 2}, 360, col, win);
+                }
+            }
             else
                 drawRect(buttons[i].r, col, win);
 
@@ -207,7 +232,7 @@ int main(int argc, char** argv) {
             if (i == 6) 
                 c = (circle){c.x + 4, c.y - 4, c.d}; /* adjust the _ */
 
-            drawText(buttons[i].text, c, (color){200, 200, 200, 255}, win, ctx, font);
+            drawText(buttons[i].text, c, textColor, win, ctx, font);
         }
 
         rlClearScreenBuffers();
@@ -243,11 +268,10 @@ int main(int argc, char** argv) {
             XWindowAttributes a;
             XGetWindowAttributes(win->display, win->window, &a);
 
-            //boarder_height
             if (buttons[4].toggle)
                 screenshot = (rect){a.x, a.y, a.width, a.height};
             else
-                screenshot = (rect){a.x, a.y - boarder_height, a.width, a.height + boarder_height};
+                screenshot = (rect){a.x, a.y - border_height, a.width, a.height + border_height};
         }
 
         else if (buttons[2].toggle) {

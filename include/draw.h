@@ -61,45 +61,31 @@ void drawRect(rect r, color c, RGFW_window* win) {
     rlSetTexture(0);
 }
 
-
-void drawPolygon(rect o, unsigned int sides, color col, RGFW_window* win) {
+void drawPolygon(rect o, int sides, color color, RGFW_window* win) {
     int i;
-
-
-    o.w /= 2;
-    o.h /= 2;
-
-    o.x += o.w;
-    o.y += o.h;
-
-    double t = 0;
-    float centralAngle = 0;
     
-    rlSetTexture(1);
-    glPrerequisites(win, o, col);
-        rlBegin(RL_QUADS);
-            for (i = 0; i < sides; i++) {
-                    float rad = (360 / sides * i) * (M_PI / 180.0);
-                    float tx = (float)cos(rad) * 0.5 + 0.5;
-                    float ty = (float)sin(rad) * 0.5 + 0.5;
-                    rlTexCoord2f(0.5, 0.5);
-                    rlColor4ub(col.r, col.g, col.b, col.a);
-                    rlVertex2f(o.x, o.y);
+    o = (rect){o.x + (o.w / 2), o.y + (o.h / 2), o.w / 2, o.h / 2};
+    float centralAngle = 0;
 
-                    rlTexCoord2f(ty, 0);
-                    rlColor4ub(col.r, col.g, col.b, col.a);
-                    rlVertex2f(o.x + sinf(DEG2RAD * centralAngle) * o.w, o.y + cosf(DEG2RAD * centralAngle) * o.h);
+    glPrerequisites(win, o, color);
+    rlBegin(RL_TRIANGLES);
+        for (i = 0; i < sides; i++) {
+            rlColor4ub(color.r, color.g, color.b, color.a);
 
-                    centralAngle += 360.0f/(float)sides;
+            float rad = (360 / sides * i) * (M_PI / 180.0);
 
-                    rlTexCoord2f(ty, tx);
-                    rlColor4ub(col.r, col.g, col.b, col.a);
-                    rlVertex2f(o.x + sinf(DEG2RAD * centralAngle) * o.w, o.y + cosf(DEG2RAD * centralAngle) * o.h);
-            }
-        rlEnd();
+            float tx = (float)cos(rad) * 0.5 + 0.5;
+            float ty = (float)sin(rad) * 0.5 + 0.5;
+
+            rlVertex2f(o.x, o.y);
+
+            rlVertex2f(o.x + sinf(DEG2RAD * centralAngle) * o.w, o.y + cosf(DEG2RAD * centralAngle) * o.h);
+
+            centralAngle += 360.0f/(float)sides;
+            rlVertex2f(o.x + sinf(DEG2RAD * centralAngle) * o.w, o.y + cosf(DEG2RAD * centralAngle) * o.h);
+        }
+    rlEnd();
     rlPopMatrix();
-
-    rlSetTexture(0);
 }
 
 void drawText(char* text, circle c, color col, RGFW_window* win, FONScontext* ctx, int fonsFont) {
