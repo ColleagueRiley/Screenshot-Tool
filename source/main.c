@@ -255,22 +255,11 @@ int main(int argc, char** argv) {
         }
 
         XImage* img = XGetImage(win->display, DefaultRootWindow(win->display), 0, 0, screenshot.w, screenshot.h, AllPlanes, ZPixmap);
-        siString filename = si_string_make("Screenshot_");
+        
 
         time_t t = time(NULL);
-        struct tm now = *localtime(&t);
-
-        si_string_append(&filename, si_u64_to_cstr(now.tm_year + 1900));
-        si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_mon + 1));
-        si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_mday));
-        si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_hour));
-        si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_min));
-        si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_sec));
+        struct tm now = *localtime(&t); /* TODO(EimaMei): Is there even a point to get the memory and not keep it as a pointer? */
+        siString filename = si_string_make_fmt("Screenshot_%d_%d_%d_%d_%d_%d", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 
         unsigned int index = 0;
 
