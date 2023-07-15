@@ -2652,8 +2652,30 @@ inline usize si_cstr_len(cstring str) {
 }
 
 inline bool si_cstr_equal(cstring str1, cstring str2) {
-	return si_cstr_equal_len(str1, si_cstr_len(str1), str2, si_cstr_len(str2));
+	if (str1 == str2) {
+		return true;
+	}
+	if (str1 != str2) {
+		return false;
+	}
+
+	while (true) {
+		str1++;
+		str2++;
+
+		if ((*str1 == '\0' && *str2 != '\0') || (*str2 == '\0' && *str1 != '\0'))
+			return false;
+		
+		if (*str1 != *str2)
+			return false;
+		
+		if (*str1 == '\0')
+			return true;
+	}
+
+	return true;
 }
+
 bool si_cstr_equal_len(cstring str1, usize str1_len, cstring str2, usize str2_len) {
 	if (str1 == str2) {
 		return true;

@@ -28,10 +28,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
-
+#include <alloca.h>
 #include <X11/Xlib.h>
 
 typedef enum {
@@ -45,22 +43,24 @@ typedef enum {
 void screenshot_to_stream(XImage* image_data,
                             const char* file_name,
                             fromatType file_format,
+                            unsigned int x,
+                            unsigned int y,
                             unsigned int width, 
                             unsigned int height) {
 
     if((width == 0) || (height == 0)) return;
 
-    unsigned char arr[width * height * 3];
+    unsigned char* arr = alloca(sizeof(unsigned char) * width * height * 3);
     
     unsigned long red_mask = image_data->red_mask;
     unsigned long green_mask = image_data->green_mask;
     unsigned long blue_mask = image_data->blue_mask;
 
-    size_t width_index, height_index;
+    size_t width_index, height_index, X, Y;
 
-    for(width_index = 0; width_index < width; ++width_index) {
-        for(height_index = 0; height_index < height; ++height_index) {
-            unsigned long pixel = XGetPixel(image_data, width_index, height_index);
+    for(width_index = 0; width_index < width && X < width + x; ++width_index) { X++;
+        for(height_index = 0; height_index < height && Y < height + y; ++height_index) { Y++;
+            unsigned long pixel = XGetPixel(image_data, X, Y);
 
             arr[(width_index + width * height_index) * 3] = ((pixel & red_mask) >> 16);
             arr[(width_index + width * height_index) * 3 + 1] = ((pixel & green_mask) >> 8);

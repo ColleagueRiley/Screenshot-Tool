@@ -203,9 +203,7 @@ FONS_DEF FONScontext* glfonsCreate(int width, int height, int flags)
 
 	gl = (GLFONScontext*)malloc(sizeof(GLFONScontext));
 	if (gl == NULL) goto error;
-	memset(gl, 0, sizeof(GLFONScontext));
 
-	memset(&params, 0, sizeof(params));
 	params.width = width;
 	params.height = height;
 	params.flags = (unsigned char)flags;

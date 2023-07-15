@@ -75,7 +75,7 @@ void drawPolygon(rect o, unsigned int sides, color col, RGFW_window* win) {
     double t = 0;
     float centralAngle = 0;
     
-    rlSetTexture(-1);
+    rlSetTexture(1);
     glPrerequisites(win, o, col);
         rlBegin(RL_QUADS);
             for (i = 0; i < sides; i++) {
