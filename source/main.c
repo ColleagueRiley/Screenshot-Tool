@@ -1,19 +1,23 @@
+#define FONTSTASH_IMPLEMENTATION
+#define SI_ALLOCATOR_UNDEFINE
+
+
+#include <assert.h>
+#include <stb_image.h>
 #include <RGFW.h>
 #include <draw.h>
 #include <xss.h>
 #include <sili.h>
 
+#include <unistd.h>
+
 /*
 TODO:
 
-change button color depending on button status
-
-make sure only one region button is on at a time
-
-OK -> [wait the delay] take screen shot (based on other buttons)
-
-delay textbox
-delay (+ / -) -> actually change value,
+- screenshot active window
+- screenshot selected rectangle
+- show mouse
+- select font already installed on the system
 
 CLI
 
@@ -49,7 +53,7 @@ typedef struct button {
 void updateButton(button* b, RGFW_Event e) {
     switch (e.type) {
         case RGFW_mouseButtonPressed:
-            if (b->s == hovered) {
+            if (rectCollidePoint(b->r, (point){e.x, e.y})) {
                 if (b->s != pressed)
                     b->toggle = !b->toggle;
                 b->s = pressed;
@@ -62,7 +66,7 @@ void updateButton(button* b, RGFW_Event e) {
                 b->s = none;
             break;
         case RGFW_mousePosChanged:
-            if (rectCollidePoint(b->r, (point){e.x, e.y}) && !b->s)
+            if (rectCollidePoint(b->r, (point){e.x, e.y}))
                 b->s = hovered;
             else
                 b->s = none;
@@ -74,13 +78,13 @@ void updateButton(button* b, RGFW_Event e) {
 int main(int argc, char** argv) {
     int i;
 
-    unsigned char delay = 1; /* 1 - 60 delay time for screenshot */
+    unsigned char delay = 0; /* 0 - 60 delay time for screenshot */
 
     const int buttonCount = 10;
     button buttons[] = { 
         /* region toggle buttons [only one can be on at at time] */
-        {"Entire screen", 40, 20, 20, 20},
-        {"Active screen", 40, 50, 20, 20},
+        {"Entire screen", 40, 20, 20, 20, 0, true},
+        {"Active window", 40, 50, 20, 20},
         {"Select a region", 40, 80, 20, 20},
         /* option buttons */
         {"Capture cursor", 40, 140, 20, 20},
@@ -93,8 +97,17 @@ int main(int argc, char** argv) {
         {"Cancel", 200, 178, 40, 20},
         {"OK", 250, 178, 40, 20}
     };
-
+    
     RGFW_window* win = RGFW_createWindowPointer("screenshot-tool", 0, 0, 300, 200, RGFW_NO_RESIZE);
+
+    if (si_path_exists("logo.png")) {
+        int w, h, c;
+        unsigned char* icon = stbi_load("logo.png", &w, &h, &c, 0);
+        RGFW_window_setIcon(win, icon, w, h, c);
+        free(icon);
+    }
+    else
+        printf("Warning : logo.png not found\n");
 
     /* init rlgl for graphics */
     rlLoadExtensions((void*)RGFW_getProcAddress);
@@ -116,6 +129,10 @@ int main(int argc, char** argv) {
     
     XWindowAttributes attrs;
     XGetWindowAttributes(win->display, DefaultRootWindow(win->display), &attrs);
+    
+    XGetWindowAttributes(win->display, win->window, &attrs);
+
+    unsigned int boarder_height = attrs.y;
 
     rect screenshot = {0, 0, attrs.width, attrs.height};
 
@@ -138,7 +155,7 @@ int main(int argc, char** argv) {
                 if (si_between(i, 6, 7)) {
                     delay += (i == 6) ? -1 : 1;
 
-                    delay += (delay == 61) ? -1 : (!delay) ? 1 : 0;
+                    delay = (delay == 61) ? 0 : (delay == 255) ? 60 : delay;
                 }
 
                 else if (i == 8) {
@@ -149,6 +166,10 @@ int main(int argc, char** argv) {
 
                 else if (i == 9)
                     goto SCREENSHOT;
+                
+                else if (si_between(i, 0, 2))
+                    for (i = 0; i < 3; i++)
+                        buttons[i].toggle = (buttons[i].s == pressed);
             }
 
             switch (win->event.type) {
@@ -200,11 +221,40 @@ int main(int argc, char** argv) {
 
     if (false) { SCREENSHOT:
         XUnmapWindow(win->display, win->window);
-        /* wait for window to close */
-        sleep(1);
-        Display* display = XOpenDisplay(NULL);
+        XFlush(win->display);   
 
-        XImage* img = XGetImage((Display*)display, DefaultRootWindow(display), screenshot.x, screenshot.y, screenshot.w, screenshot.h, AllPlanes, ZPixmap);
+        /* wait for window to close and for panel to hide */
+        XEvent e;
+        while (e.type != UnmapNotify)
+            XNextEvent(win->display, &e);
+
+        if (!delay)
+            usleep(700000);
+        else
+            sleep(delay);
+
+        if (buttons[1].toggle) {
+            int r;
+
+            XGetInputFocus(win->display, &win->window, &r);
+
+            assert(win->window != NULL);
+
+            XWindowAttributes a;
+            XGetWindowAttributes(win->display, win->window, &a);
+
+            //boarder_height
+            if (buttons[4].toggle)
+                screenshot = (rect){a.x, a.y, a.width, a.height};
+            else
+                screenshot = (rect){a.x, a.y - boarder_height, a.width, a.height + boarder_height};
+        }
+
+        else if (buttons[2].toggle) {
+
+        }
+
+        XImage* img = XGetImage(win->display, DefaultRootWindow(win->display), 0, 0, screenshot.w, screenshot.h, AllPlanes, ZPixmap);
         siString filename = si_string_make("Screenshot_");
 
         time_t t = time(NULL);
@@ -240,11 +290,10 @@ int main(int argc, char** argv) {
         
         si_string_append(&filename, ".png");
 
-        screenshot_to_stream(img, filename, PNG, screenshot.w, screenshot.h);
+        screenshot_to_stream(img, filename, PNG, screenshot.x, screenshot.y, screenshot.w, screenshot.h);
 
         XFree(img);
-
-        XCloseDisplay(display);
+        win->window = NULL;
     }
 
     /* free any leftover data */
