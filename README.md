@@ -1,4 +1,7 @@
 # Super-Lightweight-Screenshot-Tool
+![alt text](https://github.com/ColleagueRiley/screenshot-tool/blob/main/logo.png?raw=true)
+![alt text](https://github.com/ColleagueRiley/screenshot-tool/blob/main/Screenshot.png?raw=true)
+
 Just as the name implies, it is a **SUPER** lightweight screenshot tool.
 Not only is the code itself lightweight, but the libraries it relies on are lightweight too!
 
