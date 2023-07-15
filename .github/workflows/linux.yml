@@ -17,5 +17,8 @@ jobs:
     - name: apt
       run: sudo apt-get install mesa-common-dev libglx-dev libxcursor-dev
       
-    - name: make
-      run: make
+    - name: compile single-headers.o
+      run: gcc -c source/single-headers.c -lm -I./include -I./include/deps
+      
+    - name: gcc 
+      run: gcc source/main.c single-headers.o -lm -lX11 -lGLX -I./include -I./include/deps
