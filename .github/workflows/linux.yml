@@ -19,5 +19,6 @@ jobs:
       
     - name: compile single-headers.o
       run: gcc -c source/single-headers.c -lm -I./include -I./include/deps
-    - gcc:
+      
+    - name: gcc 
       run: gcc source/main.c single-headers.o -lm -I./include -I./include/deps
