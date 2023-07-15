@@ -7,6 +7,20 @@ Not only is the code itself lightweight, but the libraries it relies on are ligh
 
 They're so lightweight infact, that they're all included in this project
 
+# Documentation
+### toggle  
+`-e` :   Capture entire screen [on by default]\  
+`-a` :   Capture active window\
+`-s` :   Capture selected region\
+`-c` :   Capture cursor [on by default]\
+`-b` :   Capture border [on by default]
+
+### other   
+`-d` :   Delay [seconds]\
+`-l` :   Light mode\
+`-n` :   Screenshot now [no gui]\
+`-h` :   Display this information
+
 # XSS
 [XSS](https://github.com/ferhatgec/xss/tree/master) is a simple command line based screenshot tool created by [Ferhat Geçdoğan](https://github.com/ferhatgec/xss/tree/master) 
 under the MIT license. 
