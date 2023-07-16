@@ -7,6 +7,7 @@
 #include <RGFW.h>
 #include <draw.h>
 #include <xss.h>
+#include <fonts.h>
 #include <sili.h>
 
 #include <unistd.h>
@@ -81,8 +82,8 @@ void updateButton(button* b, RGFW_Event e) {
 
 int main(int argc, char** argv) {
     int i;
-
     unsigned char delay = 0; /* 0 - 60 delay time for screenshot */
+    bool lightMode = false;
 
     const int buttonCount = 10;
     button buttons[] = { 
@@ -101,9 +102,65 @@ int main(int argc, char** argv) {
         {"Cancel", 200, 178, 40, 20},
         {"OK", 250, 178, 40, 20}
     };
-    
-    RGFW_window* win = RGFW_createWindowPointer("screenshot-tool", 0, 0, 300, 200, RGFW_NO_RESIZE);
 
+    FONScontext* ctx = NULL;
+
+    RGFW_window*  win = RGFW_createWindowPointer("screenshot-tool", 0, 0, 300, 200, RGFW_NO_RESIZE);
+    rect screenshot;
+    unsigned int border_height;
+
+    for (i = 1; i < argc; i++) {
+        if (argv[i][0] == '-')
+            switch (argv[i][1]) {
+                case 'e':
+                    buttons[0].toggle = !buttons[0].toggle;
+                    break;
+                case 'a':
+                    buttons[1].toggle = !buttons[1].toggle;
+                    break;
+                case 's':
+                    buttons[2].toggle = !buttons[2].toggle;
+                    break;
+                case 'c':
+                    buttons[3].toggle = !buttons[3].toggle;
+                    break;
+                case 'b':
+                    buttons[4].toggle = !buttons[4].toggle;
+                    break;
+                case 'd':
+                    delay = si_cstr_to_i64(argv[i + 1]);
+                    break;
+                case 'l':
+                    lightMode = true;
+                    break;
+                case 'n':
+                    XWindowAttributes attrs;
+                    XGetWindowAttributes(win->display, win->window, &attrs);
+
+                    border_height = attrs.y;
+
+                    screenshot = (rect){0, 0, attrs.width, attrs.height};
+
+                    goto SCREENSHOT;
+                case 'h':
+                    printf( "toggle:\n"  
+                            "   -e   Capture entire screen [on by default]\n"  
+                            "   -a   Capture active window\n"   
+                            "   -s   Capture selected region\n"   
+                            "   -c   Capture cursor [on by default]\n"   
+                            "   -b   Capture border [on by default]\n"
+                            "   \n"
+                            "other:\n"   
+                            "   -d Delay [seconds]\n"   
+                            "   -l Light mode\n"  
+                            "   -n Screenshot now [no gui]\n"
+                            "   -h Display this information\n"
+                        );
+                    return 0;
+                default: break;
+            }
+    }
+    
     if (si_path_exists("logo.png")) {
         int w, h, c;
         unsigned char* icon = stbi_load("logo.png", &w, &h, &c, 0);
@@ -118,7 +175,6 @@ int main(int argc, char** argv) {
     rlglInit(win->w, win->h);
 
     color bg, alt, textColor;
-    bool lightMode = false;
 
     if (lightMode) {
         bg = (color){227, 227, 227, 255};
@@ -139,18 +195,27 @@ int main(int argc, char** argv) {
     win->y = (screenSize[1] + win->h) / 8;
 
     /* init text renderer */
-    FONScontext* ctx = glfonsCreate(500, 500, 1);
+    ctx = glfonsCreate(500, 500, 1);
+    
+    int font_ttf_index;
 
-    int font = fonsAddFont(ctx, "sans", "DejaVuSans.ttf");
+    for (font_ttf_index = 0; font_ttf_index < (7 * 3) && !si_path_exists(font_ttfs[font_ttf_index]); font_ttf_index++);
+
+    if (!si_path_exists(font_ttfs[font_ttf_index])) {
+        printf("No font file found\n");
+        return 1;
+    }
+
+    int font = fonsAddFont(ctx, "sans", font_ttfs[font_ttf_index]);
     
     XWindowAttributes attrs;
     XGetWindowAttributes(win->display, DefaultRootWindow(win->display), &attrs);
     
     XGetWindowAttributes(win->display, win->window, &attrs);
 
-    unsigned int border_height = attrs.y;
+    border_height = attrs.y;
 
-    rect screenshot = {0, 0, attrs.width, attrs.height};
+    screenshot = (rect){0, 0, attrs.width, attrs.height};
 
     bool running = true;
 
@@ -255,7 +320,7 @@ int main(int argc, char** argv) {
 
         if (!delay)
             usleep(700000);
-        else
+        else if (delay)
             sleep(delay);
 
         if (buttons[1].toggle) {
@@ -279,22 +344,25 @@ int main(int argc, char** argv) {
         }
 
         XImage* img = XGetImage(win->display, DefaultRootWindow(win->display), 0, 0, screenshot.w, screenshot.h, AllPlanes, ZPixmap);
-        siString filename = si_string_make("Screenshot_");
-
+        
         time_t t = time(NULL);
-        struct tm now = *localtime(&t);
+        struct tm* now = localtime(&t);
 
-        si_string_append(&filename, si_u64_to_cstr(now.tm_year + 1900));
+        
+        siString filename = si_string_make("Screenshot_");
+        si_string_append(&filename, si_u64_to_cstr(now->tm_year + 1900));
         si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_mon + 1));
+        si_string_append(&filename, si_u64_to_cstr(now->tm_mon + 1));
         si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_mday));
+        si_string_append(&filename, si_u64_to_cstr(now->tm_mday));
         si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_hour));
+        si_string_append(&filename, si_u64_to_cstr(now->tm_hour));
         si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_min));
+        si_string_append(&filename, si_u64_to_cstr(now->tm_min));
         si_string_push(&filename, '_');
-        si_string_append(&filename, si_u64_to_cstr(now.tm_sec));
+        si_string_append(&filename, si_u64_to_cstr(now->tm_sec));
+        //siString filename = si_string_make_fmt("Screenshot_%d_%d_%d_%d_%d_%d", now->tm_year + 1900, now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min, now->tm_sec);
+
 
         unsigned int index = 0;
 
@@ -319,10 +387,12 @@ int main(int argc, char** argv) {
         XFree(img);
         win->window = NULL;
     }
-
-    /* free any leftover data */
-    fonsDeleteInternal(ctx);
-    rlglClose();
     
+    if (ctx) {
+        /* free any leftover data */
+        fonsDeleteInternal(ctx);
+        rlglClose();
+    }
+
     RGFW_window_close(win);
 }
