@@ -21,6 +21,9 @@ They're so lightweight infact, that they're all included in this project
 `-d` :   Delay [seconds]\
 `-l` :   Light mode\
 `-n` :   Screenshot now [no gui]\
+`-N` :   Skip preview window\
+`-C` :   Set color to [hex code] (eg. -C F60033)\
+`-o` :   Where to put the file [directory/path], defaults to `./` if nothing is added\ 
 `-h` :   Display this information
 
 # XSS
