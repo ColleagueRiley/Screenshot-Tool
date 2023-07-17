@@ -6,6 +6,8 @@
 #include "rlgl.h"
 #include "rglfontstash.h"
 
+
+#include <GL/gl.h>
 #include <math.h>
 
 #ifndef DEG2RAD
@@ -43,17 +45,22 @@ void glPrerequisites(RGFW_window* win, rect r, color c) {
     rlMatrixMode(RL_MODELVIEW);
 }
 
-void drawRect(rect r, color c, RGFW_window* win) {
-    rlSetTexture(1);
+void drawRect(rect r, color c, bool tex, RGFW_window* win) {
+    if (!tex)
+        rlSetTexture(1);
 
     glPrerequisites(win, r, c);   
         rlBegin(RL_QUADS); // start drawing the rect
+            rlTexCoord2f(0, 0);
             rlVertex2f(r.x, r.y);
 
+            rlTexCoord2f(0, 1);
             rlVertex2f(r.x, r.y + r.h);
 
+            rlTexCoord2f(1, 1);
             rlVertex2f(r.x + r.w, r.y + r.h);
                 
+            rlTexCoord2f(1, 0);
             rlVertex2f(r.x + r.w, r.y);
         rlEnd();
     rlPopMatrix();
@@ -108,4 +115,23 @@ void drawText(char* text, circle c, color col, RGFW_window* win, FONScontext* ct
     rlPopMatrix();
 
     fonsSetSpacing(ctx, 0);
+}
+
+unsigned int loadTexture(unsigned char* data, rect r) {
+    unsigned int texture;
+
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    
+    //glPixelStorei(GL_UNPACK_ALIGNMENT, 1); 
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, r.w);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, r.w, r.h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    return texture;    
 }
