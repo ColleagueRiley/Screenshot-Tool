@@ -21,4 +21,4 @@ jobs:
       run: gcc -c source/single-headers.c -lm -I./include -I./include/deps
       
     - name: gcc 
-      run: gcc source/main.c single-headers.o -lm -lX11 -lGLX -I./include -I./include/deps
+      run: gcc source/main.c single-headers.o -lm -lX11 -lGLX -lGL -I./include -I./include/deps

@@ -10,6 +10,8 @@ all:
 debug:
 	make single-headers.o
 	gcc $(SOURCES) $(ARGS) -lX11 -lGL -lGLX -o screenshot-tool -g 
+	
+	gcc $(SOURCES) $(ARGS) -lX11 -lGLX -lGL -o screenshot-tool -w 
 	./screenshot-tool
 
 install:
