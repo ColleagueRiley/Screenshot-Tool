@@ -1,4 +1,4 @@
-const char* font_ttfs[7 * 3] = {    
+const char* font_ttfs[] = {    
     "DejaVuSans.ttf",
     "LiberationSans-Regular.ttf",
     "DroidSans.ttf",
