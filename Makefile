@@ -5,7 +5,7 @@ ARGS = -lm -I./include -I./include/deps
 all:
 	make single-headers.o
 	
-	gcc $(SOURCES) $(ARGS) -lX11 -lGLX  -o screenshot-tool -w 
+	gcc $(SOURCES) $(ARGS) -lX11 -lGLX -lGL -o screenshot-tool -w 
 	./screenshot-tool
 	
 single-headers.o:
