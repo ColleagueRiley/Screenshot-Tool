@@ -12,11 +12,13 @@
 #include <stb_image.h>
 #include <RGFW.h>
 #include <draw.h>
-#include <xss.h>
 #include <fonts.h>
 #include <sili.h>
+#include <stb_image_write.h>
 
 #include <unistd.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 /*
 TODO:
@@ -79,7 +81,7 @@ void updateButton(button* b, RGFW_Event e) {
 color bg, highlightColor, alt, textColor; 
 
 inline bool previewWindow(RGFW_window* win, unsigned char* arr, rect r, button* buttons, FONScontext* ctx, int font) {
-    XMapWindow(win->display, win->window);
+    XMapWindow(win->display, (Window)win->window);
 
     int i;
 
@@ -90,7 +92,7 @@ inline bool previewWindow(RGFW_window* win, unsigned char* arr, rect r, button* 
 
     while (true) {
         while (RGFW_window_checkEvent(win)) {
-            if (win->event.type == RGFW_quit)
+            if (win->event.type == RGFW_quit || win->event.keyCode == RGFW_Escape)
                 return false;
         
             for (i = 8; i < 10; i++) {
@@ -165,7 +167,7 @@ int main(int argc, char** argv) {
 
     screenshot = (rect){0, 0, attrs.width, attrs.height + border_height};
 
-    XGetWindowAttributes(win->display, win->window, &attrs);
+    XGetWindowAttributes(win->display, (Window)win->window, &attrs);
     border_height = attrs.y;
 
     for (i = 1; i < argc; i++) {
@@ -302,8 +304,7 @@ int main(int argc, char** argv) {
     FONScontext* ctx = glfonsCreate(500, 500, 1);
     
     int font_ttf_index;
-
-    for (font_ttf_index = 0; font_ttf_index < (7 * 3) && !si_path_exists(font_ttfs[font_ttf_index]); font_ttf_index++);
+    for (font_ttf_index = 0; font_ttf_index < (sizeof(font_ttfs)/sizeof(char*)) && !si_path_exists(font_ttfs[font_ttf_index]); font_ttf_index++);
 
     if (!si_path_exists(font_ttfs[font_ttf_index])) {
         printf("No font file found\n");
@@ -349,10 +350,12 @@ int main(int argc, char** argv) {
             }
 
             switch (win->event.type) {
+                case RGFW_keyPressed:
+                    if (win->event.keyCode != RGFW_Escape)
+                        break;
                 case RGFW_quit:
                     running = false;
                     break;
-
                 default: break;
             }
         }
@@ -362,7 +365,7 @@ int main(int argc, char** argv) {
         drawText("Options", (circle){30, 110, 20}, textColor, win, ctx, font);
         drawText("Delay", (circle){180, 0, 20}, textColor, win, ctx, font);
 
-        buttons[5].text = si_u64_to_cstr(delay);
+        buttons[5].text = (char*)si_u64_to_cstr(delay);
 
         /* draw buttons */
         for (i = 0; i < buttonCount; i++) {
@@ -405,7 +408,7 @@ int main(int argc, char** argv) {
 
 
     if (false) { SCREENSHOT:
-        XUnmapWindow(win->display, win->window);
+        XUnmapWindow(win->display, (Window)win->window);
         XFlush(win->display);   
 
         /* wait for window to close and for panel to hide */
@@ -421,12 +424,12 @@ int main(int argc, char** argv) {
         if (buttons[1].toggle) {
             int r;
 
-            XGetInputFocus(win->display, &win->window, &r);
+            XGetInputFocus(win->display, (Window*)&win->window, &r);
 
             assert(win->window != NULL);
 
             XWindowAttributes a;
-            XGetWindowAttributes(win->display, win->window, &a);
+            XGetWindowAttributes(win->display, (Window)win->window, &a);
 
             if (buttons[4].toggle)
                 screenshot = (rect){a.x, a.y - border_height, a.width, a.height + border_height};
@@ -467,11 +470,11 @@ int main(int argc, char** argv) {
 
             si_string_push(&filename, '_');
 
-            char* indexStr = si_u64_to_cstr(index);
+            const char* indexStr = si_u64_to_cstr(index);
             si_string_append(&filename, indexStr);
 
             if (si_path_exists(filename))
-                si_string_erase(&filename, eindex, si_string_len(indexStr) + 1);
+                si_string_erase(&filename, eindex, si_string_len(filename) + 1);
         }
         
         si_string_append(&filename, ".png");
@@ -483,17 +486,35 @@ int main(int argc, char** argv) {
                 si_string_insert(&filename, "/", 0);
             si_string_insert(&filename, save_path, 0);
         }
+        
+        /* convert XImage to Bitmap */
+        unsigned char* bitmap = malloc(sizeof(unsigned char) * screenshot.w * screenshot.h * 3);
+        
+        unsigned int x, y;
 
-        unsigned char* arr = screenshot_to_stream(img, screenshot.x, screenshot.y, screenshot.w, screenshot.h);
-        XFree(img);
+        for(x = 0; x < screenshot.w; x++)
+            for(y = 0; y < screenshot.h; y++) {
+                unsigned long pixel = XGetPixel(img, screenshot.x + x, screenshot.y + y);
 
-        if (!preview || (preview && previewWindow(win, arr, screenshot, buttons, ctx, font)))
-            stbi_write_png(filename, screenshot.w, screenshot.h, 3, arr, screenshot.w * 3);
+                bitmap[(x + screenshot.w * y) * 3] = ((pixel & img->red_mask) >> 16);
+                bitmap[(x + screenshot.w * y) * 3 + 1] = ((pixel & img->green_mask) >> 8);
+                bitmap[(x + screenshot.w * y) * 3 + 2] = (pixel & img->blue_mask);
+            }
+
+        XFree(img); /* free ximage */
+
+        /* if preview is true, check if the user wants to save the image before saving it */
+        if (!preview || (preview && previewWindow(win, bitmap, screenshot, buttons, ctx, font)))
+            stbi_write_png(filename, screenshot.w, screenshot.h, 3, bitmap, screenshot.w * 3);
+        
+        free(bitmap); /* free bitmap */
+
         win->window = NULL;
     }
+
+    /* free any leftover data */
     
     if (ctx) {
-        /* free any leftover data */
         fonsDeleteInternal(ctx);
         rlglClose();
     }
