@@ -1112,14 +1112,13 @@ RGFW_Event* RGFW_window_checkEvent(RGFW_window* win) {
 			}
 
 			/* set event key data */
-			win->event.keyCode = XkbKeycodeToKeysym((Display *)win->display, E.xkey.keycode, 0, E.xkey.state & ShiftMask ? 1 : 0); /* get keysym*/
+			win->event.keyCode = XkbKeycodeToKeysym((Display *)win->display, E.xkey.keycode, 0, E.xkey.state & ShiftMask ? 1 : 0);
 			win->event.keyName = XKeysymToString(win->event.keyCode); /* convert to string */
 
 			/* get keystate data */
 			XKeyboardState keystate;
 			XGetKeyboardControl((Display *)win->display, &keystate);
 			win->event.ledState = keystate.led_mask;
-			win->event.keyCode = E.xkey.keycode;
 			win->event.type = (E.type == KeyPress) ? RGFW_keyPressed : RGFW_keyReleased;
 			break;
 
