@@ -327,6 +327,9 @@ unsigned short RGFW_registerJoystickF(RGFW_window* win, char* file);
 
 unsigned char RGFW_isPressedJS(RGFW_window* win, unsigned short controller, unsigned char button);
 
+/*! Get max OpenGL version */
+unsigned char* RGFW_getMaxGLVersion();
+
 /*! Set OpenGL version hint */
 void RGFW_setGLVersion(int major, int minor);
 
@@ -607,6 +610,22 @@ int RGFW_majorVersion, RGFW_minorVersion;
 void RGFW_setGLVersion(int major, int minor) {
 	RGFW_majorVersion = major; 
 	RGFW_minorVersion = minor;
+}
+
+#include <GL/gl.h>
+
+unsigned char* RGFW_getMaxGLVersion() {
+    RGFW_window* dummy = RGFW_createWindowPointer("dummy", 0, 0, 1, 1, 0);
+
+    const char* versionStr = glGetString(GL_VERSION);
+
+    static unsigned char version[2]; 
+    version[0] = versionStr[0] - '0', 
+    version[1] = versionStr[2] - '0';
+
+    RGFW_window_close(dummy);
+
+    return version;
 }
 
 #ifdef RGFW_EGL
