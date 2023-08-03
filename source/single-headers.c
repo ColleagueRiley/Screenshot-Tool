@@ -24,6 +24,13 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define SI_ALLOCATOR_UNDEFINE
 
+#define SI_PAIR_UNDEFINE
+#define SI_OPTIONAL_UNDEFINE
+#define SI_BUFFER_UNDEFINE
+#define SI_THREAD_UNDEFINE
+#define SI_BIT_UNDEFINE
+#define SI_PERFORMANCE_UNDEFINE
+
 #include "stb_image.h"
 #include "stb_image_write.h"
 #include "rlgl.h" /* lightweight OpenGL abstaction layer */
