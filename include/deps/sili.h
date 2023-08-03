@@ -2581,16 +2581,20 @@ siString si_string_make_len(cstring str, usize len) {
 	return res_str;
 }
 siString si_string_make_fmt(cstring str, ...) {
-	va_list va;
-	va_start(va, str);
+    SI_ASSERT_NOT_NULL(str);
 
-	isize size = vsnprintf(nil, 0, str,  va);
-	char buf[size + 1];
-	vsnprintf(buf, size + 1, str, va);
+    va_list args, copy;
+    va_start(args, str);
 
-	va_end(va);
+    va_copy(copy, args);
+    usize  size = vsnprintf(nil, 0, str, copy);
+    va_end(copy);
 
-	return si_string_make_len(buf, size);
+    siString buffer = si_string_make_reserve(size);
+    vsnprintf(buffer, size + 1, str, args);
+    va_end(args);
+
+    return buffer;
 }
 siString si_string_make_reserve(usize len) {
 	rawptr ptr = malloc(sizeof(siStringHeader) + (len + 1));
